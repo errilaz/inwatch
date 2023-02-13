@@ -1,6 +1,6 @@
 {
   "name": "inwatch",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Filesystem watcher that spawns inotifywait.",
   "license": "MIT",
   "author": {
@@ -21,6 +21,9 @@
     "clean": "rm -rf lib"
   },
   "main": "src/inwatch.ts",
+  "files": [
+    "/lib"
+  ],
   "publishConfig": {
     "main": "lib/inwatch.js",
     "types": "lib/inwatch.d.ts"

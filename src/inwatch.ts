@@ -32,7 +32,8 @@ export class Inwatch extends(EventEmitter as new () => TypedEmitter<InwatchEvent
     const args = [
       "--monitor",
       "--quiet",
-      "--csv",
+      "--format",
+      "%e|%w|%f"
     ]
 
     if (options?.recursive) args.push("--recursive")
@@ -55,18 +56,23 @@ export class Inwatch extends(EventEmitter as new () => TypedEmitter<InwatchEvent
 
     this.child.stdout!.pipe(split()).on("data", (line: string) => {
       try {
-        const [watchPath, EVENT, eventPath] = line.split(",")
-        const event = EVENT.toLowerCase() as InwatchEventName
-        const args = { watchPath, eventPath, event: event as any }
-        if (options?.ignoreDuplicatesMs) {
-          const last = lastEvent[line]
-          lastEvent[line] = Date.now()
-          if (last && last + options.ignoreDuplicatesMs > Date.now()) {
-            return
+        const [EVENTS, watchPath, eventPath] = line.split("|")
+        const events = EVENTS.split(",").map(e => e.toLowerCase())
+        const isDir = events.indexOf("isdir")
+        if (isDir > -1) events.splice(isDir, 1)
+
+        for (const event of events) {
+          const args = { watchPath, eventPath, event: event as InwatchEventName, isDir: isDir > -1 }
+          if (options?.ignoreDuplicatesMs) {
+            const last = lastEvent[line]
+            lastEvent[line] = Date.now()
+            if (last && last + options.ignoreDuplicatesMs > Date.now()) {
+              return
+            }
           }
+          this.emit("all", args)
+          this.emit(event as InwatchEventName, args)
         }
-        this.emit("all", args)
-        this.emit(event, args)
       }
       catch (e) {
         this.emit("error", e)
@@ -90,6 +96,8 @@ export interface InwatchEventArgs {
   watchPath: string
   /** Output only when the event occurred on a directory, and in this case the name of the file within the directory which caused this event is output (`event_filename`). */
   eventPath?: string
+  /** Indicates if the event occurred on a directory. */
+  isDir: boolean
 }
 
 /** Emitted events. */
