@@ -1,6 +1,6 @@
 {
   "name": "inwatch",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Filesystem watcher that spawns inotifywait.",
   "license": "MIT",
   "author": {
