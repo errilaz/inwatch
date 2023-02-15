@@ -24,8 +24,8 @@ watcher.on("change", ({ path }) => {
   console.log(`"${path}" was changed!`)
 })
 
-watcher.on("change", ({ path }) => {
-  console.log(`"${path}" was deleted!`)
+watcher.on("remove", ({ path }) => {
+  console.log(`"${path}" was removed!`)
 })
 ```
 
