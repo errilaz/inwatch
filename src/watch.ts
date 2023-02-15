@@ -27,8 +27,10 @@ export class Watch extends(EventEmitter as new () => TypedEmitter<WatchEvents>) 
     const args = [
       "--monitor",
       "--quiet",
+      "--timefmt",
+      "%s",
       "--format",
-      "%e|%w|%f"
+      "%e|%w|%f|%T"
     ]
 
     if (options?.recursive) args.push("--recursive")
@@ -51,13 +53,20 @@ export class Watch extends(EventEmitter as new () => TypedEmitter<WatchEvents>) 
 
     this.child.stdout!.pipe(split()).on("data", (line: string) => {
       try {
-        const [EVENTS, watchPath, eventPath] = line.split("|")
+        const [EVENTS, watchPath, eventPath, time] = line.split("|")
+        const timestamp = Number.parseInt(time)
         const events = EVENTS.split(",").map(e => e.toLowerCase())
         const isDir = events.indexOf("isdir")
         if (isDir > -1) events.splice(isDir, 1)
 
         for (const event of events) {
-          const args = { watchPath, eventPath, event: event as WatchEventName, isDir: isDir > -1 }
+          const args = {
+            watchPath,
+            eventPath,
+            event: event as WatchEventName,
+            isDir: isDir > -1,
+            timestamp,
+          }
           if (options?.ignoreDuplicatesMs) {
             const last = lastEvent[line]
             lastEvent[line] = Date.now()
@@ -93,6 +102,8 @@ export interface WatchEventArgs {
   eventPath?: string
   /** Indicates if the event occurred on a directory. */
   isDir: boolean
+  /** Event time in epoch. */
+  timestamp: number
 }
 
 /** Emitted events. */
