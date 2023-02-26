@@ -7,7 +7,9 @@ import { Wait, WaitOptions } from "./wait"
 
 export type WatchOptions = Omit<WaitOptions, "events" | "include" | "exclude"> & {
   /** Do not emit `add` events for existing files when starting the watch. */
-  skipInitial?: boolean
+  ignoreInitial?: boolean
+  /** Do not actually start the watcher, just scan and emit `add` events at startup. */
+  ignoreSubsequent?: boolean
   /** Exclude all events on files matching the regular expression pattern. */
   allow?: RegExp
   /** Exclude all events on files except the ones matching the regular expression pattern. */
@@ -36,7 +38,10 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
     super()
     this.path = path
     this.options = options || {}
-    this.scan(path, true).then(() => this.start())
+    this.scan(path, true).then(() => {
+      if (this.options.ignoreSubsequent) return
+      this.start()
+    })
   }
 
   private async scan(dirPath: string, initial = false) {
@@ -53,7 +58,7 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
       const stats = await stat(fullPath)
       if (stats.isFile()) {
         dir.set(fullPath, "file")
-        if (initial && this.options.skipInitial)
+        if (initial && this.options.ignoreInitial)
           continue
         const path = relative(this.path, fullPath)
         const args = { event: "add" as const, path }

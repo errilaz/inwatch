@@ -13,6 +13,7 @@ const watcher = watch("/my/path", {
   recursive: true,
   reject: /node_modules|\.git/,
   ignoreInitial: false,
+  ignoreSubsequent: false,
   ignoreDuplicatesMs: 100,
 })
 
