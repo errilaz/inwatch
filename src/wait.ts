@@ -18,8 +18,10 @@ export interface WaitOptions {
   ignoreDuplicatesMs?: number
 }
 
+/** Spawns `inotifywait` and watches for specified events. */
 export class Wait extends(EventEmitter as new () => TypedEmitter<WaitEvents>) {
   private child: ChildProcess
+  private stopped: Promise<void> | undefined
 
   constructor(paths: string | string[], options?: WaitOptions) {
     super()
@@ -52,6 +54,7 @@ export class Wait extends(EventEmitter as new () => TypedEmitter<WaitEvents>) {
     const lastEvent: { [key: string]: number | undefined } = {}
 
     this.child.stdout!.pipe(split()).on("data", (line: string) => {
+      if (this.stopped) return
       try {
         const [EVENTS, watchPath, eventPath, time] = line.split("|")
         const timestamp = Number.parseInt(time)
@@ -84,8 +87,16 @@ export class Wait extends(EventEmitter as new () => TypedEmitter<WaitEvents>) {
     })
   }
 
-  close() {
-    this.child.kill()
+  /** Kills `inotifywait` and stops emitting events. */
+  stop() {
+    if (!this.stopped) {
+      this.child.stdout?.removeAllListeners()
+      this.stopped = new Promise<void>(resolve => {
+        this.child.on("exit", () => resolve())
+        this.child.kill()
+      })
+    }
+    return this.stopped
   }
 }
 
