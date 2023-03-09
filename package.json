@@ -1,6 +1,6 @@
 {
   "name": "inwatch",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Filesystem watcher that spawns inotifywait.",
   "license": "MIT",
   "author": {
@@ -14,7 +14,8 @@
   "keywords": [
     "watch",
     "watcher",
-    "inotify"
+    "inotify",
+    "bun"
   ],
   "scripts": {
     "build": "tsc --project .",

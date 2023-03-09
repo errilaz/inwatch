@@ -33,6 +33,8 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
   readonly path: string
   readonly options: WatchOptions
   private cache: ScanCache = new Map()
+  private wait: Wait | undefined
+  private stopped: Promise<void> | undefined
 
   constructor(path: string, options?: WatchOptions) {
     super()
@@ -42,6 +44,17 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
       if (this.options.ignoreSubsequent) return
       this.start()
     })
+  }
+
+  /** Kills `inotifywait` and stops emitting events. */
+  stop() {
+    if (!this.stopped) {
+      this.stopped = new Promise(resolve => {
+        this.removeAllListeners()
+        resolve(this.wait?.stop())
+      })
+    }
+    return this.stopped
   }
 
   private async scan(dirPath: string, initial = false) {
@@ -62,10 +75,11 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
           continue
         const path = relative(this.path, fullPath)
         const args = { event: "add" as const, path }
+        if (this.stopped) return
         this.emit("all", args)
         this.emit("add", args)
       }
-      else if (stats.isDirectory()) {
+      else if (stats.isDirectory() && this.options.recursive) {
         dir.set(fullPath, "dir")
         await this.scan(fullPath, initial)
       }
@@ -73,7 +87,7 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
   }
 
   private start() {
-    const watch = new Wait(this.path, {
+    this.wait = new Wait(this.path, {
       ...this.options,
       events: ["create", "modify", "delete", "move"],
       include: this.options.allow ? getExtendedRegex(this.options.allow) : undefined,
@@ -88,7 +102,8 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
       this.cache.get(dirname(fullPath))?.set(path, "file")
     }
 
-    watch.on("create", ({ isDir, watchPath, eventPath }) => {
+    this.wait.on("create", ({ isDir, watchPath, eventPath }) => {
+      if (this.stopped) return
       const fullPath = join(watchPath, eventPath!)
       if (!isDir) {
         createFile(fullPath)
@@ -102,7 +117,8 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
       }
     })
 
-    watch.on("modify", ({ watchPath, eventPath }) => {
+    this.wait.on("modify", ({ watchPath, eventPath }) => {
+      if (this.stopped) return
       const path = relative(this.path, join(watchPath, eventPath!))
       const args = { event: "change" as const, path }
       this.emit("all", args)
@@ -141,7 +157,8 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
       deleteSubs(dir)
     }
 
-    watch.on("delete", ({ isDir, watchPath, eventPath }) => {
+    this.wait.on("delete", ({ isDir, watchPath, eventPath }) => {
+      if (this.stopped) return
       const fullPath = join(watchPath, eventPath!)
       if (!isDir) {
         deleteFile(fullPath)
@@ -151,7 +168,8 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
       }
     })
 
-    watch.on("moved_from", ({ isDir, watchPath, eventPath }) => {
+    this.wait.on("moved_from", ({ isDir, watchPath, eventPath }) => {
+      if (this.stopped) return
       const fullPath = join(watchPath, eventPath!)
       if (!isDir) {
         deleteFile(fullPath)
@@ -161,7 +179,8 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
       }
     })
 
-    watch.on("moved_to", ({ isDir, watchPath, eventPath }) => {
+    this.wait.on("moved_to", ({ isDir, watchPath, eventPath }) => {
+      if (this.stopped) return
       const fullPath = join(watchPath, eventPath!)
       if (!isDir) {
         createFile(fullPath)
@@ -171,7 +190,8 @@ export class Watch extends (EventEmitter as new () => TypedEventEmitter<WatchEve
       }
     })
 
-    watch.on("error", e => {
+    this.wait.on("error", e => {
+      if (this.stopped) return
       this.emit("error", e)
     })
   }
