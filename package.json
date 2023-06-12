@@ -1,6 +1,6 @@
 {
   "name": "inwatch",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Filesystem watcher that spawns inotifywait.",
   "license": "MIT",
   "author": {
@@ -27,8 +27,8 @@
     "/lib"
   ],
   "publishConfig": {
-    "exports": "lib/inwatch.js",
-    "types": "lib/inwatch.d.ts"
+    "exports": "./lib/inwatch.js",
+    "types": "./lib/inwatch.d.ts"
   },
   "dependencies": {
     "split": "^1.0.1",
