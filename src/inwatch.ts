@@ -1,5 +1,5 @@
-import { Watch, WatchOptions } from "./watch"
-import { Wait, WaitOptions } from "./wait"
+import { Watch, WatchOptions } from "./watch.js"
+import { Wait, WaitOptions } from "./wait.js"
 
 export * from "./wait"
 export * from "./watch"

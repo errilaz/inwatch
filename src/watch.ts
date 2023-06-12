@@ -2,8 +2,8 @@ import EventEmitter from "events"
 import { readdir, stat } from "fs/promises"
 import { dirname, join, relative, resolve } from "path"
 import TypedEventEmitter from "typed-emitter"
-import { getExtendedRegex } from "./getExtendedRegex"
-import { Wait, WaitOptions } from "./wait"
+import { getExtendedRegex } from "./getExtendedRegex.js"
+import { Wait, WaitOptions } from "./wait.js"
 
 export type WatchOptions = Omit<WaitOptions, "events" | "include" | "exclude"> & {
   /** Do not emit `add` events for existing files when starting the watch. */
